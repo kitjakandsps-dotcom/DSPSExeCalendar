@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ปฏิทินงานผู้บริหารสถานศึกษา</title>
+  <meta name="description" content="ปฏิทินงาน กำหนดการ และภารกิจของผู้บริหารสถานศึกษา">
+  <meta name="theme-color" content="#13392B">
+
+  <!-- ไอคอนบนแท็บเบราว์เซอร์ และเมื่อบันทึกไว้บนหน้าจอโทรศัพท์ (แทนที่ไฟล์ logo.png ด้วยโลโก้โรงเรียนได้) -->
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ปฏิทินผู้บริหาร">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root { --pine: #13392B; --pine-2: #1A4A38; --sun: #F5C531; --on-dark: #E3EEE7; --on-dark-2: #9DBBAB; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; background: var(--pine); }
+    body { overflow: hidden; font-family: 'IBM Plex Sans Thai Looped', system-ui, sans-serif; color: var(--on-dark); }
+
+    #app {
+      position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh;
+      border: 0; display: block; background: #F4F7F2;
+      opacity: 0; transition: opacity .25s ease;
+    }
+    #app.ready { opacity: 1; }
+
+    /* หน้ารอระหว่างเปิดระบบจาก Google Apps Script (ใช้เวลาประมาณ 2-5 วินาที) */
+    .wait {
+      position: fixed; inset: 0; display: grid; place-items: center; padding: 24px;
+      background: var(--pine); transition: opacity .25s ease, visibility .25s;
+    }
+    .wait.gone { opacity: 0; visibility: hidden; }
+    .wait-box { width: min(360px, 100%); }
+    .mark { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 14px; background: var(--sun); color: var(--pine); }
+    .mark svg { width: 30px; height: 30px; }
+    .wait h1 { margin: 20px 0 4px; font-size: 20px; font-weight: 600; line-height: 1.5; }
+    .wait p { margin: 0; font-size: 14px; line-height: 1.7; color: var(--on-dark-2); }
+    .bar { position: relative; height: 3px; margin-top: 22px; overflow: hidden; border-radius: 3px; background: var(--pine-2); }
+    .bar::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 35%; border-radius: 3px; background: var(--sun); animation: slide 1.3s ease-in-out infinite; }
+    @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+    @media (prefers-reduced-motion: reduce) { .bar::after { animation: none; width: 100%; opacity: .5; } }
+    .wait a { color: var(--sun); font-weight: 600; text-underline-offset: 3px; }
+    .slow { margin-top: 16px !important; }
+    .setup { margin-top: 18px !important; padding: 12px 14px; border-radius: 10px; background: var(--pine-2); color: var(--on-dark) !important; }
+    .setup code { padding: 1px 6px; border-radius: 5px; background: rgba(0, 0, 0, .25); font-size: 13px; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <div class="wait" id="wait" role="status" aria-live="polite">
+    <div class="wait-box">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg>
+      </div>
+      <h1>ปฏิทินงานผู้บริหารสถานศึกษา</h1>
+      <p id="waitMsg">กำลังเปิดระบบ…</p>
+      <div class="bar" id="bar" aria-hidden="true"></div>
+      <p class="slow" id="slow" hidden>ใช้เวลานานกว่าปกติ ถ้าหน้ายังไม่ขึ้น <a href="#" id="openDirect" target="_blank" rel="noopener">เปิดระบบในแท็บใหม่</a></p>
+    </div>
+  </div>
+
+  <iframe id="app" title="ปฏิทินงานผู้บริหารสถานศึกษา"
+    allow="fullscreen; screen-wake-lock; clipboard-write" allowfullscreen
+    referrerpolicy="no-referrer-when-downgrade"></iframe>
+
+  <script>
+    /* ==========================================================================
+     * ตั้งค่า: วางลิงก์เว็บแอปจาก Apps Script (ลงท้ายด้วย /exec) ระหว่างเครื่องหมาย ' '
+     * ลิงก์อยู่ที่ Deploy > จัดการการทำให้ใช้งานได้ > URL ของเว็บแอป
+     * ========================================================================== */
+    var APP_URL = 'https://script.google.com/macros/s/AKfycbzRDd4dv7hC2T1ZZGLA1fga2NCEVB6G7Vr0Gwn-cq5r0Hc0AKQWyIiHsXFblYGaTnK5/exec';
+
+    (function () {
+      var frame = document.getElementById('app');
+      var wait = document.getElementById('wait');
+      var ok = /^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[\w-]{20,}\/exec\/?$/.test(APP_URL);
+
+      if (!ok) {
+        document.getElementById('waitMsg').innerHTML = 'ยังไม่ได้ตั้งค่าลิงก์ระบบ';
+        document.getElementById('bar').hidden = true;
+        var p = document.createElement('p');
+        p.className = 'setup';
+        p.innerHTML = 'แก้ไฟล์ <code>index.html</code> ใน GitHub แล้ววางลิงก์เว็บแอปที่ลงท้ายด้วย <code>/exec</code> ในบรรทัด <code>var APP_URL</code>';
+        document.querySelector('.wait-box').appendChild(p);
+        return;
+      }
+
+      // ส่งต่อค่าในลิงก์ เช่น ?mode=tv สำหรับเปิดจอทีวีหน้าห้อง
+      var src = APP_URL + location.search;
+      document.getElementById('openDirect').href = src;
+
+      frame.addEventListener('load', function () {
+        frame.classList.add('ready');
+        wait.classList.add('gone');
+        try { frame.focus(); } catch (e) {}
+      });
+      setTimeout(function () { document.getElementById('slow').hidden = false; }, 12000);
+      frame.src = src;
+    })();
+  </script>
+</body>
+</html>
